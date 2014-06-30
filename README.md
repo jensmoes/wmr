@@ -33,7 +33,9 @@ Deploy (Copies binary to your users bin directory):
   
 Run:
   ./wx <serial port> <output file>
-  Example:
+  
+Example:
     ./wx /dev/ttyUSB0 /var/www/mywmr.xml
-    
+
+As an example of output you can see my weather station running on my Raspberry Pi here: http://raspberry.troest.com/current.xml
   
