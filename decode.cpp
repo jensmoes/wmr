@@ -29,7 +29,13 @@ extern const int datalen[FT_MAX] =
   6
 }; 
 
-	
+//Returns: frame type on success, -1 on error
+//Arguments:
+//    wmr: A pointer to the WMR instance where you want the current unit to be updated.
+//    channel: A pointer to the channel used by the current unit
+//    unit: A pointer to the unit that was updated. This can be used in lieue of the returned frame type and channel if you need to do something with the currently decoded unit. A unit is a physical sensor attached to the WMR network.
+//    framebuf: The input buffer from the weather station that you want decoded. This should contain a full valid frame as per http://www.netsky.org/WMR/Protocol.htm
+
 int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
 {
   int frametype = framebuf[0];
@@ -39,6 +45,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
   switch (frametype) {
     case FT_WIND:
       *unit = &(wmr->wind.unit);
+      wmr->wind.unit.detected = true;
       wmr->wind.unit.sys_tm = wmr->sys_tm;
 	  wmr->wind.unit.clock_valid = wmr->clock.unit.clock_valid;
    	  if(wmr->clock.unit.clock_valid)
@@ -76,6 +83,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       break;
     case FT_RAIN:
       *unit = &(wmr->rain.unit);
+      wmr->rain.unit.detected = true;
       wmr->rain.unit.sys_tm = wmr->sys_tm;
 	  wmr->rain.unit.clock_valid = wmr->clock.unit.clock_valid;
       // add time passed since last clock frame
@@ -128,6 +136,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       }
       if (chan <= 3) {
         *unit = &(wmr->th[chan].unit);
+	wmr->th[chan].unit.detected = true;
         wmr->th[chan].unit.sys_tm = wmr->sys_tm;
 		wmr->th[chan].unit.clock_valid = wmr->clock.unit.clock_valid;
         // add time passed since last clock frame
@@ -164,21 +173,22 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       }
       break;
     case FT_MUSHR:
-	  *unit = &(wmr->th[0].unit);
-	  *channel = 0;
+      *unit = &(wmr->th[0].unit);
+      *channel = 0;
+      wmr->th[0].unit.detected = true;
       wmr->th[0].unit.sys_tm = wmr->sys_tm;
-	  wmr->th[0].unit.clock_valid = wmr->clock.unit.clock_valid;
-	  if(wmr->clock.unit.clock_valid)
-	  {
-		  // add time passed since last clock frame
-		  wmr->th[0].unit.clock_tm = wmr->clock.unit.clock_tm
-			  + (long)difftime(wmr->th[0].unit.sys_tm, wmr->clock.unit.sys_tm);
-	  }      
+      wmr->th[0].unit.clock_valid = wmr->clock.unit.clock_valid;
+      if(wmr->clock.unit.clock_valid)
+	{
+	  // add time passed since last clock frame
+	  wmr->th[0].unit.clock_tm = wmr->clock.unit.clock_tm
+	    + (long)difftime(wmr->th[0].unit.sys_tm, wmr->clock.unit.sys_tm);
+	}      
       wmr->th[0].unit.lobat = BIT(framebuf[1], 6);
       wmr->th[0].temp.val = LO(framebuf[2])
-          + (HI(framebuf[2]) * 10)
-          + (LO(framebuf[3]) * 100)
-          + (((framebuf[3] & 0x30) >> 4) * 1000);
+	+ (HI(framebuf[2]) * 10)
+	+ (LO(framebuf[3]) * 100)
+	+ (((framebuf[3] & 0x30) >> 4) * 1000);
       if (BIT(framebuf[3], 7)) wmr->th[0].temp.val *= -1;
       wmr->th[0].temp.fval = (float)wmr->th[0].temp.val / 10;
       
@@ -190,7 +200,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       wmr->th[0].dew.val = LO(framebuf[5])
           + (HI(framebuf[5]) * 10);
       wmr->th[0].dew.over = BIT(framebuf[1], 4);
-	  wmr->th[0].dew.fval = (float)wmr->th[0].dew.val;
+      wmr->th[0].dew.fval = (float)wmr->th[0].dew.val;
 
       wmr->th[0].unit.framelen = datalen[frametype];
       memcpy(&(wmr->th[0].unit.frame), framebuf, datalen[frametype]);
@@ -205,17 +215,18 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       }
       if (chan <= 2) {
         *unit = &(wmr->th[chan].unit);
+	wmr->temp[chan].unit.detected = true;
         wmr->temp[chan].unit.sys_tm = wmr->sys_tm;
-		wmr->temp[chan].unit.clock_valid = wmr->clock.unit.clock_valid;
-		if(wmr->clock.unit.clock_valid)
-		{
-			// add time passed since last clock frame
-			wmr->temp[chan].unit.clock_tm = wmr->clock.unit.clock_tm
-				+ (long)difftime(wmr->temp[chan].unit.sys_tm, wmr->clock.unit.sys_tm);
-		}
+	wmr->temp[chan].unit.clock_valid = wmr->clock.unit.clock_valid;
+	if(wmr->clock.unit.clock_valid)
+	  {
+	    // add time passed since last clock frame
+	    wmr->temp[chan].unit.clock_tm = wmr->clock.unit.clock_tm
+	      + (long)difftime(wmr->temp[chan].unit.sys_tm, wmr->clock.unit.sys_tm);
+	  }
         wmr->temp[chan].unit.lobat = BIT(framebuf[1], 6);
         wmr->temp[chan].chan_num = LO(framebuf[1]);
-
+	
         wmr->temp[chan].temp.val = LO(framebuf[2])
             + (HI(framebuf[2]) * 10)
             + (LO(framebuf[3]) * 100)
@@ -223,7 +234,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
         if (BIT(framebuf[3], 7)) wmr->temp[chan].temp.val *= -1;
         wmr->temp[chan].temp.fval = (float)wmr->temp[chan].temp.val / 10;
         wmr->temp[chan].temp.over = BIT(framebuf[3], 6);
-
+	
         wmr->temp[chan].unit.framelen = datalen[frametype];
         memcpy(&(wmr->temp[chan].unit.frame), framebuf, datalen[frametype]);
         *channel = chan;
@@ -233,15 +244,16 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       break;
     case FT_BTH:
       *unit = &(wmr->bth.unit);
-	  wmr->bth.version = 1;
+      wmr->bth.unit.detected = true;
+      wmr->bth.version = 1;
       wmr->bth.unit.sys_tm = wmr->sys_tm;
-	  wmr->bth.unit.clock_valid = wmr->clock.unit.clock_valid;
-	  if(wmr->clock.unit.clock_valid)
-	  {
-		  // add time passed since last clock frame
-		  wmr->bth.unit.clock_tm = wmr->clock.unit.clock_tm
-			  + (long)difftime(wmr->bth.unit.sys_tm, wmr->clock.unit.sys_tm);
-	  }
+      wmr->bth.unit.clock_valid = wmr->clock.unit.clock_valid;
+      if(wmr->clock.unit.clock_valid)
+	{
+	  // add time passed since last clock frame
+	  wmr->bth.unit.clock_tm = wmr->clock.unit.clock_tm
+	    + (long)difftime(wmr->bth.unit.sys_tm, wmr->clock.unit.sys_tm);
+	}
       wmr->bth.unit.lobat = BIT(framebuf[1], 6);
       wmr->bth.temp.val = LO(framebuf[2])
           + (HI(framebuf[2]) * 10)
@@ -267,22 +279,23 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
           + (HI(framebuf[9]) * 1000);
       if (wmr->bth.sealevel.val < 4000) wmr->bth.sealevel.val += 10000;
 
-	  wmr->bth.sealevel.fval = (float)wmr->bth.sealevel.val / 10;
-
+      wmr->bth.sealevel.fval = (float)wmr->bth.sealevel.val / 10;
+	  
       wmr->bth.unit.framelen = datalen[frametype];
       memcpy(&(wmr->bth.unit.frame), framebuf, datalen[frametype]);
       break;
     case FT_EXTBTH:
       *unit = &(wmr->bth.unit);
-	  wmr->bth.version = 2;
+      wmr->bth.unit.detected = true;
+      wmr->bth.version = 2;
       wmr->bth.unit.sys_tm = wmr->sys_tm;
-	  wmr->bth.unit.clock_valid = wmr->clock.unit.clock_valid;
-	  // add time passed since last clock frame
-       	  if(wmr->clock.unit.clock_valid)
-      	  {
-		  wmr->bth.unit.clock_tm = wmr->clock.unit.clock_tm
-			  + (long)difftime(wmr->bth.unit.sys_tm, wmr->clock.unit.sys_tm);
-       	  }
+      wmr->bth.unit.clock_valid = wmr->clock.unit.clock_valid;
+      // add time passed since last clock frame
+      if(wmr->clock.unit.clock_valid)
+	{
+	  wmr->bth.unit.clock_tm = wmr->clock.unit.clock_tm
+	    + (long)difftime(wmr->bth.unit.sys_tm, wmr->clock.unit.sys_tm);
+	}
       wmr->bth.unit.lobat = BIT(framebuf[1], 6);
       wmr->bth.temp.val = LO(framebuf[2])
           + (HI(framebuf[2]) * 10)
@@ -299,7 +312,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       wmr->bth.dew.val = LO(framebuf[5])
           + (HI(framebuf[5]) * 10);
       wmr->bth.dew.over = BIT(framebuf[1], 4);
-	  wmr->bth.dew.fval = (float)wmr->bth.dew.val;
+      wmr->bth.dew.fval = (float)wmr->bth.dew.val;
 
       wmr->bth.press.val = (framebuf[6] + ((framebuf[7] & 0x1) * 256) + 600);
       
@@ -311,7 +324,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
           + (LO(framebuf[10]) * 1000)
           + (HI(framebuf[10]) * 10000)
 		  + (framebuf[6] + (framebuf[7] & 0x1) * 256)*10;
-	  wmr->bth.sealevel.fval = (float)wmr->bth.sealevel.val / 10 ;
+      wmr->bth.sealevel.fval = (float)wmr->bth.sealevel.val / 10 ;
 
       wmr->bth.unit.framelen = datalen[frametype];
       memcpy(&(wmr->bth.unit.frame), framebuf, datalen[frametype]);
@@ -338,7 +351,6 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
           }
         } else {
           if (wmr->use_sys_tm) {
-//            syslog(LOG_USER + LOG_PID, "WMR918 clock seems to be ok, again");
             wmr->use_sys_tm = 0;
           }
           wmr->clock.clock_diff = clock_diff;
@@ -350,6 +362,7 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
       break;
     case FT_CLOCK:
       *unit = &(wmr->clock.unit);
+      wmr->clock.unit.detected = true;
       wmr->clock.unit.sys_tm = wmr->sys_tm;
       wmr->clock.unit.lobat = BIT(framebuf[1], 7);
 
@@ -373,12 +386,11 @@ int wmr_decode(WMR *wmr, int *channel, unitptr_t *unit, unsigned char* framebuf)
           // if difference of system and WMR918 clock times had changed
           // too much since last clock frame, regard WMR918 clock as bad.
           if (!(wmr->use_sys_tm)) {
-            //syslog(LOG_USER + LOG_PID, "bad WMR918 clock");
             wmr->use_sys_tm = 1;
           }
         } else {
           if (wmr->use_sys_tm) {
-            //syslog(LOG_USER + LOG_PID, "WMR918 clock seems to be ok, again");
+
             wmr->use_sys_tm = 0;
           }
           wmr->clock.clock_diff = clock_diff;

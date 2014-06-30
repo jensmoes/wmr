@@ -1,3 +1,8 @@
+//Jens Troest (c) 2007
+
+//Library for outputting WMR data in XML.
+//The XML is formatted according to the DTD defined in wmr.dtd
+
 #include <stdio.h>
 #include <string>
 using namespace std;
