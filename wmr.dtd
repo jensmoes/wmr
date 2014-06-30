@@ -1,0 +1,36 @@
+<!ELEMENT station (system,clock?,battery,sensor*)>
+<!ATTLIST station name CDATA #IMPLIED>
+
+<!ELEMENT system (datetime)>
+<!ELEMENT datetime (#PCDATA)>
+<!ELEMENT clock (datetime)>
+<!ELEMENT battery (#PCDATA)>
+
+<!ELEMENT sensor (version?,system,datetime?,battery,winddirection?,windvelocity*,rain*,temperature*,humidity?,pressure*,forecast?)>
+<!ATTLIST sensor name (wind|rain|barothermohygro|thermohygro|thermo) #REQUIRED>
+<!ATTLIST sensor type (indoor|outdoor|aux1|aux2|aux3) #REQUIRED>
+
+<!ELEMENT version (#PCDATA)>
+
+<!ELEMENT winddirection (#PCDATA)>
+<!ATTLIST winddirection unit (degrees) #IMPLIED>
+<!ELEMENT windvelocity (#PCDATA)>
+<!ATTLIST windvelocity name (gust|average) #REQUIRED>
+<!ATTLIST windvelocity unit CDATA #IMPLIED>
+
+<!ELEMENT rain (#PCDATA|datetime)*>
+<!ATTLIST rain name (current|total|yesterday) #REQUIRED>
+<!ATTLIST rain unit CDATA #IMPLIED>
+
+<!ELEMENT temperature (#PCDATA)>
+<!ATTLIST temperature name (temperature|dewpoint|windchill) "temperature">
+<!ATTLIST temperature unit  CDATA "&#x2103;">
+
+<!ELEMENT humidity (#PCDATA)>
+
+<!ELEMENT pressure (#PCDATA)>
+<!ATTLIST pressure name (station|sealevel) #REQUIRED>
+<!ATTLIST pressure unit CDATA "hPa">
+
+<!ELEMENT forecast (#PCDATA)>
+
