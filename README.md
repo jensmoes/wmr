@@ -1,7 +1,7 @@
 wmr
 ===
 
-Output data from Oregon Scientific WMR9xx weather stations serial port to XML on a Raspberry Pi.
+Output data from Oregon Scientific WMR9xx (WMR918, WMR928, WMR968 etc.) weather stations serial port to XML on a Raspberry Pi.
 
 I made this stuff along time ago for an old XP box and now I got a Raspberry Pi I decided to port it.
 
