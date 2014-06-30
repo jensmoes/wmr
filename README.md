@@ -15,8 +15,8 @@ It supports the following sensors:
 - Rain sensor
 - Wind sensor
 - Pressure/Temperature/Humidity (BaroThermoHygro or BTH)
-- Temp/Humidity (TH)
-- Temp (T)
+- Temp/Humidity (TH, one on the main channel and 3 on the auxillary channels 1-3)
+- Temp (T, up to 3 on the auxillary channels 1-3)
 
 as well as the station data itself. The WMR918 is capable of outputting:
 - Clock (System time is used instead until it is detected)
@@ -32,7 +32,7 @@ Deploy (Copies binary to your users bin directory):
   make -k Makefile deploy
   
 Run:
-  ./wx <serial port> <output file>
+  ./wx &lt;serial port&gt;  &lt;output file&gt;
   
 Example:
     ./wx /dev/ttyUSB0 /var/www/mywmr.xml
